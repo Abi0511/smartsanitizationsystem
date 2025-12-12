@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Smart Sanitization System</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: linear-gradient(to right, #dbeafe, #ffe4e6); margin:0; padding:0; color:#333;}
+    header { background-color: #90cdf4; color:white; padding:20px; text-align:center; border-bottom:2px solid #ccc;}
+    .container { max-width: 900px; margin: 30px auto; padding: 20px; background: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);}
+    h2 { color: #ec4899;}
+    input, select, button {padding:10px; margin:8px 0; width:100%; max-width:300px; border:1px solid #ccc; border-radius:6px; font-size:14px;}
+    button {background-color: #60a5fa; color:white; cursor:pointer; border:none;}
+    button:hover {background-color: #3b82f6;}
+    .section {margin-top:30px;}
+    .status {font-weight:bold; color:#ec4899;}
+    .alert {padding:10px; border-radius:6px; margin-top:10px;}
+    .alert.warning {background-color:#fef3c7; color:#92400e;}
+    .alert.critical {background-color:#fee2e2; color:#991b1b;}
+    .tank-card {border:1px solid #ccc; border-radius:8px; padding:10px; margin-bottom:10px; background-color:#f0f9ff;}
+    .progress-bar {height:20px; border-radius:10px; background-color:#e5e7eb; overflow:hidden; margin-top:5px;}
+    .progress-fill {height:100%; transition: width 0.5s ease;}
+    .toast {position:fixed; bottom:20px; right:20px; background-color:#4ade80; color:white; padding:10px 20px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.2); display:none; z-index:1000;}
+    .filter-buttons {display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap;}
+    .tab-btn {width:auto; min-width:110px;}
+    .refill-all-container {display:flex;align-items:center;gap:12px;margin-bottom:22px;}
+    .refill-img {height:50px; cursor:pointer;}
+    /* Background for login/register container */
+    #loginRegContainer {
+      background-image: url('https://static.vecteezy.com/system/resources/previews/002/160/298/original/cute-hand-sanitizer-illustration-free-vector.jpg');
+      background-size: cover;
+      background-position: center;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      padding: 30px;
+    }
+    /* White semi-transparent backgrounds for forms */
+    #loginSection, #registerSection {
+      background-color: rgba(255,255,255,0.85);
+      padding: 20px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>🧼 Smart Sanitization System</h1>
+  <p>Fully Software-Based Simulation</p>
+</header>
+<div class="container">
+
+  <!-- Login/Registration Tabs -->
+  <div class="section" id="loginRegContainer">
+    <div style="display:flex; gap:10px;">
+      <button class="tab-btn" id="loginTab" style="background:#3b82f6;">Login</button>
+      <button class="tab-btn" id="registerTab">Register</button>
+    </div>
+    <!-- Login Form -->
+    <div id="loginSection" style="margin-top:20px;">
+      <h2>🔐 Login (Registered User or Preset)</h2>
+      <input type="text" id="loginUsername" placeholder="Username" autocomplete="username" />
+      <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password" />
+      <select id="loginRole">
+        <option value="Admin">Admin</option>
+        <option value="Technician">Technician</option>
+        <option value="Viewer">Viewer</option>
+      </select>
+      <button id="loginButton">Login</button>
+      <p id="loginStatus" class="status"></p>
+    </div>
+    <!-- Registration Form -->
+    <div id="registerSection" style="margin-top:20px; display:none;">
+      <h2>🆕 Register (New User)</h2>
+      <input type="text" id="regUsername" placeholder="New Username" autocomplete="username" />
+      <input type="password" id="regPassword" placeholder="New Password" autocomplete="new-password" />
+      <select id="regRole">
+        <option value="Admin">Admin</option>
+        <option value="Technician">Technician</option>
+        <option value="Viewer">Viewer</option>
+      </select>
+      <button id="registerButton">Register</button>
+      <p id="registerStatus" class="status"></p>
+    </div>
+  </div>
+
+  <div class="section" id="dashboardSection" style="display:none;">
+    <h2>📊 Multi-Tank Monitoring</h2>
+    <div class="refill-all-container" id="refillAllSection" style="display:none;">
+      <img 
+        class="refill-img" 
+        src="https://charatoon.com/photo/6027.png" 
+        alt="Sanitizer Tank Cartoon" 
+        title="Click me or button to refill all low tanks"
+        onclick="document.getElementById('refillAllLowBtn').click()" />
+      <button id="refillAllLowBtn">Refill All Low Tanks</button>
+    </div>
+    <div class="filter-buttons">
+      <button onclick="filterTanks('all')">📋 All</button>
+      <button onclick="filterTanks('critical')">🔴 Critical</button>
+      <button onclick="filterTanks('low')">⚠ Below 30%</button>
+      <button onclick="filterTanks('mid')">🟡 Middle Level</button>
+      <button onclick="filterTanks('full')">✅ Full</button>
+    </div>
+    <div id="tankDisplay"></div>
+    <div id="alertBox"></div>
+  </div>
+
+  <div class="section" id="aiInsightsSection" style="display:none;">
+    <h2>🧠 AI Insights Panel</h2>
+    <div id="priorityList"></div>
+    <div id="anomalyAlerts"></div>
+  </div>
+  <div class="section" id="historySection" style="display:none;">
+    <h2>📜 Refill History</h2>
+    <div id="refillHistory"></div>
+  </div>
+  <div class="section" id="usageSection" style="display:none;">
+    <h2>📈 Usage Analytics</h2>
+    <p>Estimated Weekly Usage: 15.0 liters</p>
+  </div>
+  <div class="section" id="schedulerSection" style="display:none;">
+    <h2>📅 Virtual Refill Scheduler</h2>
+    <input type="text" id="scheduleTankId" placeholder="Tank ID (e.g., TANK001)" />
+    <input type="datetime-local" id="scheduleTime" />
+    <button onclick="scheduleRefill()">Schedule Refill</button>
+    <p id="scheduleStatus" class="status"></p>
+  </div>
+  <div class="section" id="chatbotSection" style="display:none;">
+    <h2>🤖 Chatbot Assistant</h2>
+    <input type="text" id="chatInput" placeholder="Ask something..." />
+    <button onclick="sendChat()">Send</button>
+    <div id="chatLog"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+  // Tank Data
+  let tanks = {
+    TANK001: { level: 20, location: "Lobby", lastUpdated: new Date(), history: [], previousLevel: 20 },
+    TANK002: { level: 80, location: "Cafeteria", lastUpdated: new Date(), history: [], previousLevel: 80 },
+    TANK003: { level: 65, location: "Reception", lastUpdated: new Date(), history: [], previousLevel: 65 },
+    TANK004: { level: 45, location: "Conference Room", lastUpdated: new Date(), history: [], previousLevel: 45 },
+    TANK005: { level: 30, location: "Parking Area", lastUpdated: new Date(), history: [], previousLevel: 30 },
+    TANK006: { level: 100, location: "Gym", lastUpdated: new Date(), history: [], previousLevel: 100 },
+    TANK007: { level: 15, location: "Restroom", lastUpdated: new Date(), history: [], previousLevel: 15 },
+    TANK008: { level: 50, location: "Pantry", lastUpdated: new Date(), history: [], previousLevel: 50 },
+    TANK009: { level: 70, location: "Server Room", lastUpdated: new Date(), history: [], previousLevel: 70 },
+    TANK010: { level: 25, location: "Main Entrance", lastUpdated: new Date(), history: [], previousLevel: 25 }
+  };
+
+  // Preset users for quick login (no registration needed for these)
+  const presetUsers = [
+    { username: "admin", password: "admin123", role: "Admin" },
+    { username: "tech", password: "tech123", role: "Technician" },
+    { username: "viewer", password: "viewer123", role: "Viewer" }
+  ];
+
+  let userRole = "";
+  let currentFilter = "all";
+  let autoDetectInterval = null;
+
+  // Tabs
+  const loginTab = document.getElementById('loginTab');
+  const registerTab = document.getElementById('registerTab');
+  const loginSection = document.getElementById('loginSection');
+  const registerSection = document.getElementById('registerSection');
+  loginTab.onclick = function() {
+    loginTab.style.background = "#3b82f6";
+    registerTab.style.background = "";
+    loginSection.style.display = "block";
+    registerSection.style.display = "none";
+    document.getElementById("loginStatus").innerText = "";
+    document.getElementById("registerStatus").innerText = "";
+  };
+  registerTab.onclick = function() {
+    registerTab.style.background = "#3b82f6";
+    loginTab.style.background = "";
+    registerSection.style.display = "block";
+    loginSection.style.display = "none";
+    document.getElementById("registerStatus").innerText = "";
+    document.getElementById("loginStatus").innerText = "";
+  };
+
+  function getUsers() {
+    return JSON.parse(localStorage.getItem("smartsanitizer_users")||"[]");
+  }
+  function saveUsers(users) {
+    localStorage.setItem("smartsanitizer_users", JSON.stringify(users));
+  }
+
+  document.getElementById("registerButton").onclick = function() {
+    const username = document.getElementById("regUsername").value.trim();
+    const password = document.getElementById("regPassword").value;
+    const role = document.getElementById("regRole").value;
+    if (!username || !password) {
+      document.getElementById("registerStatus").innerText = "❌ All fields required.";
+      return;
+    }
+    let users = getUsers();
+    if (users.find(u => u.username === username) || presetUsers.find(u => u.username === username)) {
+      document.getElementById("registerStatus").innerText = "❌ Username already exists.";
+      return;
+    }
+    users.push({ username, password, role });
+    saveUsers(users);
+    document.getElementById("registerStatus").innerText = "✅ Registration successful! You may log in now.";
+    document.getElementById("regUsername").value = "";
+    document.getElementById("regPassword").value = "";
+  };
+
+  document.getElementById("loginButton").onclick = function() {
+    const username = document.getElementById("loginUsername").value.trim();
+    const password = document.getElementById("loginPassword").value;
+    const role = document.getElementById("loginRole").value;
+    // Check preset users first
+    let user = presetUsers.find(u => u.username === username && u.password === password && u.role === role);
+    // If not found, check localStorage users
+    if (!user) {
+      let users = getUsers();
+      user = users.find(u => u.username === username && u.password === password && u.role === role);
+    }
+    if (user) {
+      userRole = role;
+      document.getElementById("loginStatus").innerText = "✅ Login Successful!";
+      afterLoginUI();
+      autoDetectLevels();
+    } else {
+      document.getElementById("loginStatus").innerText = "❌ Invalid username, password, or role.";
+    }
+  };
+
+  function afterLoginUI() {
+    document.getElementById("loginRegContainer").style.display = "none";
+    document.getElementById("dashboardSection").style.display = "block";
+    document.getElementById("refillAllSection").style.display = (userRole==="Admin"||userRole==="Technician") ? "flex" : "none";
+    document.getElementById("aiInsightsSection").style.display = (userRole==="Admin") ? "block" : "none";
+    document.getElementById("chatbotSection").style.display = (userRole==="Admin") ? "block" : "none";
+    document.getElementById("historySection").style.display = (userRole==="Admin"||userRole==="Technician") ? "block" : "none";
+    document.getElementById("schedulerSection").style.display = (userRole==="Admin") ? "block" : "none";
+    document.getElementById("usageSection").style.display = (userRole==="Admin") ? "block" : "none";
+    updateTankDisplay();
+    updateAlerts();
+    updateHistory();
+    updateAIInsights();
+  }
+
+  function autoDetectLevels() {
+    if (autoDetectInterval) clearInterval(autoDetectInterval);
+    autoDetectInterval = setInterval(() => {
+      for (let tankId in tanks) {
+        let change = Math.floor(Math.random() * 21) - 10;
+        const tank = tanks[tankId];
+        tank.previousLevel = tank.level;
+        tank.level = Math.max(0, Math.min(100, tank.level + change));
+        tank.lastUpdated = new Date();
+      }
+      updateTankDisplay();
+      updateAlerts();
+      updateHistory();
+      updateAIInsights();
+    }, 5000);
+  }
+
+  function updateTankDisplay() {
+    let output = "";
+    for (let tankId in tanks) {
+      const tank = tanks[tankId];
+      const level = tank.level;
+      if (
+        (currentFilter === "critical" && level >= 10) ||
+        (currentFilter === "low" && level >= 30) ||
+        (currentFilter === "mid" && (level < 30 || level > 70)) ||
+        (currentFilter === "full" && level < 100)
+      ) continue;
+      const color =
+        level >= 70 ? "#4ade80" :
+        level >= 30 ? "#facc15" : "#f87171";
+      output += `
+        <div class="tank-card">
+          <strong>${tankId}</strong> - ${tank.location}<br>
+          Level: ${level}%<br>
+          Updated: ${tank.lastUpdated.toLocaleTimeString()}<br>
+          Suggested Refill: ${suggestRefillTime(tank)}<br>
+          ${
+            (userRole === "Technician" || userRole === "Admin") ?
+              `<button onclick="refillTank('${tankId}')">Refill ${tankId}</button>` : ""
+          }
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:${level}%; background-color:${color};"></div>
+          </div>
+        </div>
+      `;
+    }
+    document.getElementById("tankDisplay").innerHTML = output;
+  }
+
+  function updateAlerts() {
+    let alerts = "";
+    for (let tankId in tanks) {
+      const level = tanks[tankId].level;
+      if (level < 10) {
+        alerts += `<div class="alert critical">🔴 Critical: ${tankId} is below 10%<br>${
+          (userRole === "Technician" || userRole === "Admin") ? `<button onclick="refillTank('${tankId}')">Refill ${tankId}</button>` : ""
+        }</div>`;
+      } else if (level < 30) {
+        alerts += `<div class="alert warning">⚠️ Warning: ${tankId} is below 30%<br>${
+          (userRole === "Technician" || userRole === "Admin") ? `<button onclick="refillTank('${tankId}')">Refill ${tankId}</button>` : ""
+        }</div>`;
+      }
+    }
+    document.getElementById("alertBox").innerHTML = alerts;
+  }
+
+  function refillTank(tankId) {
+    if (userRole !== "Technician" && userRole !== "Admin") return;
+    tanks[tankId].level = 100;
+    tanks[tankId].lastUpdated = new Date();
+    tanks[tankId].history.push(`Refilled manually at ${new Date().toLocaleString()}`);
+    updateTankDisplay();
+    updateAlerts();
+    updateHistory();
+    updateAIInsights();
+    showToast(`✅ ${tankId} refilled successfully!`);
+  }
+
+  function showToast(message) {
+    const toast = document.getElementById("toast");
+    toast.innerText = message;
+    toast.style.display = "block";
+    setTimeout(() => {
+      toast.style.display = "none";
+    }, 3000);
+  }
+
+  function updateHistory() {
+    if (userRole !== "Technician" && userRole !== "Admin") return;
+    let output = "";
+    for (let tankId in tanks) {
+      const history = tanks[tankId].history;
+      output += `<div><strong>${tankId}</strong>:<br>${history.length ? history.join("<br>") : "No history available."}</div><br>`;
+    }
+    document.getElementById("refillHistory").innerHTML = output;
+  }
+
+  function scheduleRefill() {
+    if (userRole !== "Admin") return;
+    const tankId = document.getElementById("scheduleTankId").value.toUpperCase();
+    const time = new Date(document.getElementById("scheduleTime").value);
+    if (tanks[tankId]) {
+      const delay = time - new Date();
+      if (delay > 0) {
+        setTimeout(() => {
+          tanks[tankId].level = 100;
+          tanks[tankId].lastUpdated = new Date();
+          tanks[tankId].history.push(`Refilled at ${new Date().toLocaleString()} (Scheduled)`);
+          updateTankDisplay();
+          updateAlerts();
+          updateHistory();
+          updateAIInsights();
+          showToast(`📅 ${tankId} refilled as scheduled`);
+        }, delay);
+        document.getElementById("scheduleStatus").innerText = `📅 Refill scheduled for ${tankId} at ${time.toLocaleString()}`;
+      } else {
+        document.getElementById("scheduleStatus").innerText = "❌ Scheduled time must be in the future.";
+      }
+    } else {
+      document.getElementById("scheduleStatus").innerText = "❌ Invalid Tank ID.";
+    }
+  }
+
+  function filterTanks(type) {
+    currentFilter = type;
+    updateTankDisplay();
+  }
+
+  document.getElementById("refillAllLowBtn").onclick = function() {
+    if (userRole !== "Technician" && userRole !== "Admin") return;
+    let count = 0;
+    for (const tankId in tanks) {
+      const tank = tanks[tankId];
+      if (tank.level < 30) {
+        tank.level = 100;
+        tank.lastUpdated = new Date();
+        tank.history.push(`Mass refill at ${new Date().toLocaleString()}`);
+        count++;
+      }
+    }
+    updateTankDisplay();
+    updateAlerts();
+    updateHistory();
+    updateAIInsights();
+    if (count > 0) {
+      showToast(`✅ ${count} tank(s) with low level refilled!`);
+    } else {
+      showToast("ℹ️ No tanks were below 30%");
+    }
+  };
+
+  function suggestRefillTime(tank) {
+    const avgUsagePerHour = 5;
+    const hoursLeft = tank.level / avgUsagePerHour;
+    const now = new Date();
+    const predictedEmpty = new Date(now.getTime() + hoursLeft * 60 * 60 * 1000);
+    return predictedEmpty.toLocaleString();
+  }
+  function getTankPriority(tank) {
+    const locationWeight = {
+      "Reception": 3,
+      "Restroom": 3,
+      "Lobby": 2,
+      "Conference Room": 2,
+      "Parking Area": 1,
+      "Pantry": 1,
+      "Server Room": 2,
+      "Gym": 2,
+      "Main Entrance": 3,
+      "Cafeteria": 2
+    };
+    const levelScore = 100 - tank.level;
+    const timeSinceRefill = (new Date() - new Date(tank.lastUpdated)) / (1000 * 60);
+    const locationScore = locationWeight[tank.location] || 1;
+    return levelScore * 0.5 + timeSinceRefill * 0.3 + locationScore * 10;
+  }
+  function detectAnomalies(tank) {
+    const delta = Math.abs(tank.level - tank.previousLevel);
+    if (delta > 20) {
+      return `⚠️ Anomaly detected in ${tank.location}: sudden ${delta}% change`;
+    }
+    return null;
+  }
+  function updateAIInsights() {
+    if (userRole !== "Admin") return;
+    const priorityList = Object.entries(tanks)
+      .map(([id, tank]) => ({ id, score: getTankPriority(tank), location: tank.location }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3)
+      .map((t, i) => `${i + 1}. ${t.id} in ${t.location}`)
+      .join("<br>");
+    document.getElementById("priorityList").innerHTML = `<strong>🔢 Priority Refill List:</strong><br>${priorityList}`;
+    const anomalies = Object.entries(tanks)
+      .map(([id, tank]) => detectAnomalies(tank))
+      .filter(alert => alert)
+      .join("<br>");
+    document.getElementById("anomalyAlerts").innerHTML = anomalies
+      ? `<strong>🚨 Anomaly Alerts:</strong><br>${anomalies}`
+      : "";
+  }
+  function sendChat() {
+    if (userRole !== "Admin") return;
+    const input = document.getElementById("chatInput").value.toLowerCase();
+    let response = "🤖 I didn't understand that.";
+    if (input.includes("sanitizer level")) {
+      response = Object.entries(tanks).map(([id, tank]) => `${id}: ${tank.level}%`).join("<br>");
+    } else if (input.includes("refill history")) {
+      response = Object.entries(tanks).map(([id, tank]) => {
+        const history = tank.history.length ? tank.history.join("<br>") : "No history available.";
+        return `<strong>${id}</strong>:<br>${history}`;
+      }).join("<br><br>");
+    } else if (input.includes("when did the refill happen")) {
+      response = Object.entries(tanks).map(([id, tank]) => {
+        const lastRefill = tank.history.length ? tank.history[tank.history.length - 1] : "No refill record.";
+        return `<strong>${id}</strong>: ${lastRefill}`;
+      }).join("<br>");
+    } else if (input.includes("alerts")) {
+      response = Object.entries(tanks).map(([id, tank]) => {
+        if (tank.level < 10) return `🔴 Critical alert for ${id}`;
+        else if (tank.level < 30) return `⚠ Warning for ${id}`;
+        else return `${id} is normal.`;
+      }).join("<br>");
+    } else if (input.includes("usage")) {
+      response = "Weekly usage is approximately 15.0 liters.";
+    } else if (input.includes("help")) {
+      response = "You can ask about: sanitizer level, refill history, when did the refill happen, alerts, usage status.";
+    }
+    document.getElementById("chatLog").innerHTML += `<p><strong>You:</strong> ${input}</p><p><strong>Bot:</strong> ${response}</p>`;
+    document.getElementById("chatInput").value = "";
+  }
+</script>
+</body>
+</html>
